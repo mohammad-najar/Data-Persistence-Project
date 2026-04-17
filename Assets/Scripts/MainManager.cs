@@ -1,5 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using TMPro;
+using UnityEditor.Overlays;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -12,13 +15,22 @@ public class MainManager : MonoBehaviour
 
     public Text ScoreText;
     public GameObject GameOverText;
+    public Button returnBtn;
     
     private bool m_Started = false;
     private int m_Points;
     
     private bool m_GameOver = false;
 
-    
+    public static MainManager Instance;
+
+    public Text playerNameText;
+
+    string path;
+    string playerName;
+    int bestScore = 0;
+
+
     // Start is called before the first frame update
     void Start()
     {
@@ -36,6 +48,11 @@ public class MainManager : MonoBehaviour
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
+
+        path = Application.persistentDataPath + "/savefile.json";
+        LoadData();
+
+        playerNameText.text = "Best Score: " + playerName + " : " + bestScore;
     }
 
     private void Update()
@@ -62,6 +79,35 @@ public class MainManager : MonoBehaviour
         }
     }
 
+    [System.Serializable]
+    public class SaveData
+    {
+        public string playerName;
+        public int score;
+    }
+
+    void LoadData()
+    {
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            SaveData data = JsonUtility.FromJson<SaveData>(json);
+
+            playerName = data.playerName;
+            bestScore = data.score;
+        }
+    }
+
+    void SaveUserData()
+    {
+        SaveData data = new SaveData();
+        data.playerName = playerName;
+        data.score = m_Points;
+
+        string json = JsonUtility.ToJson(data);
+        File.WriteAllText(path, json);
+    }
+
     void AddPoint(int point)
     {
         m_Points += point;
@@ -72,5 +118,16 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+        returnBtn.gameObject.SetActive(true);
+
+        if (m_Points > bestScore)
+        {
+            SaveUserData();
+        }
+    }
+
+    public void BackToMenu()
+    {
+        SceneManager.LoadScene(0);
     }
 }
